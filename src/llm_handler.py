@@ -9,7 +9,7 @@ import subprocess
 from typing import Optional
 
 from langchain_ollama import OllamaLLM
-from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 
 from src.prompts import LEGAL_ANALYSIS_SYSTEM_PROMPT, LEGAL_ANALYSIS_USER_TEMPLATE
 
