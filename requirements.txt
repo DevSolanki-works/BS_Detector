@@ -1,9 +1,8 @@
 # ── Core LLM stack ────────────────────────────────────────────────────────────
-# langchain-core is NOT pinned — pip auto-resolves a compatible version.
+# Do NOT pin langchain-core or ollama — pip resolves compatible versions.
 langchain==0.3.25
 langchain-community==0.3.24
 langchain-ollama==0.2.3
-ollama==0.3.3
 numpy>=2.1.0
 
 # ── Web interface ─────────────────────────────────────────────────────────────
