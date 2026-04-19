@@ -102,15 +102,26 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown("#### Groq API key")
-    api_key = st.text_input(
-        "Enter your free Groq API key",
-        type="password",
-        placeholder="gsk_...",
-        help="Get a free key at console.groq.com",
-        label_visibility="collapsed",
-    )
-    st.caption("[Get a free key → console.groq.com](https://console.groq.com)")
+    # ── API key: read from Streamlit Cloud secrets first, manual input as fallback ──
+    _secret_key = ""
+    try:
+        _secret_key = st.secrets.get("GROQ_API_KEY", "")
+    except Exception:
+        pass
+
+    if _secret_key:
+        api_key = _secret_key
+        st.success("API key loaded automatically", icon="🔑")
+    else:
+        st.markdown("#### Groq API key")
+        api_key = st.text_input(
+            "Enter your free Groq API key",
+            type="password",
+            placeholder="gsk_...",
+            help="Get a free key at console.groq.com",
+            label_visibility="collapsed",
+        )
+        st.caption("[Get a free key → console.groq.com](https://console.groq.com)")
 
     st.markdown("---")
     st.caption("Built with 🐍 Python · Streamlit · LangChain · Groq")
