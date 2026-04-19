@@ -8,7 +8,7 @@ import streamlit as st
 import time
 import json
 
-from src.llm_handler import analyse_contract, get_available_models, SUPPORTED_MODELS
+from src.llm_handler import analyse_contract, get_available_models, get_model_label
 from src.doc_parser import extract_text
 
 
@@ -90,7 +90,7 @@ with st.sidebar:
     selected_model = st.selectbox(
         "Select local model",
         options=available,
-        format_func=lambda m: SUPPORTED_MODELS.get(m, m),
+        format_func=get_model_label,
         label_visibility="collapsed",
     )
 
@@ -102,12 +102,19 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    st.markdown("#### How to add models")
-    st.code("ollama pull llama3:8b\nollama pull mistral:7b\nollama pull gemma2:9b", language="bash")
+    st.markdown("#### Groq API key")
+    api_key = st.text_input(
+        "Enter your free Groq API key",
+        type="password",
+        placeholder="gsk_...",
+        help="Get a free key at console.groq.com",
+        label_visibility="collapsed",
+    )
+    st.caption("[Get a free key → console.groq.com](https://console.groq.com)")
 
     st.markdown("---")
-    st.caption("Built with 🐍 Python · Streamlit · LangChain · Ollama")
-    st.caption("Data never leaves your machine.")
+    st.caption("Built with 🐍 Python · Streamlit · LangChain · Groq")
+    st.caption("⚡ ~3 second responses · Free tier · No install needed")
 
 
 # ── Main area header ──────────────────────────────────────────────────────────
@@ -188,6 +195,10 @@ with col_info:
 if scan_clicked:
     active_text = contract_text.strip()
 
+    if not api_key:
+        st.warning("Please enter your Groq API key in the sidebar first. Get one free at console.groq.com")
+        st.stop()
+
     if not active_text:
         st.warning("Please paste some text, upload a file, or load the sample first.")
         st.stop()
@@ -197,14 +208,14 @@ if scan_clicked:
         st.stop()
 
     # ── Run analysis ──────────────────────────────────────────────────────────
-    with st.spinner(f"ContractGuard is analysing with {selected_model} — this may take 20–60s…"):
+    with st.spinner(f"ContractGuard is analysing with {selected_model} via Groq — usually takes 3–10s…"):
         start = time.time()
         try:
-            result = analyse_contract(active_text, model_name=selected_model)
+            result = analyse_contract(active_text, model_name=selected_model, api_key=api_key)
             elapsed = time.time() - start
         except Exception as e:
             st.error(f"**Analysis failed:** {e}")
-            st.info("Make sure Ollama is running (`ollama serve`) and the model is downloaded.")
+            st.info("Check your Groq API key is correct and you have internet access.")
             st.stop()
 
     st.success(f"✅ Analysis complete in {elapsed:.1f}s")
@@ -305,7 +316,7 @@ if scan_clicked:
             st.json(result)
 
         st.markdown("---")
-        st.markdown('<div class="privacy-pill">🔒 This analysis never left your machine</div>', unsafe_allow_html=True)
+        st.markdown('<div class="privacy-pill">⚡ Analysed via Groq cloud · encrypted in transit</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
 
