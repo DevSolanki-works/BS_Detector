@@ -12,6 +12,12 @@ from src.llm_handler import analyse_contract, get_available_models, get_model_la
 from src.doc_parser import extract_text
 
 
+# ── Session state init ───────────────────────────────────────────────────────
+if "sample_loaded" not in st.session_state:
+    st.session_state.sample_loaded = False
+if "sample_text" not in st.session_state:
+    st.session_state.sample_text = ""
+
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="ContractGuard · Legal BS Detector",
@@ -111,7 +117,6 @@ with st.sidebar:
 
     if _secret_key:
         api_key = _secret_key
-        st.success("API key loaded automatically", icon="🔑")
     else:
         st.markdown("#### Groq API key")
         api_key = st.text_input(
@@ -188,8 +193,12 @@ in Delaware, USA, and governed by Delaware law."""
 
     st.code(SAMPLE[:300] + "...", language="text")
     if st.button("Load this sample"):
-        contract_text = SAMPLE
-        st.success("Sample loaded — click 'Scan for BS' below!")
+        st.session_state.sample_text = SAMPLE
+        st.session_state.sample_loaded = True
+        st.rerun()
+
+    if st.session_state.sample_loaded:
+        st.success("✅ Sample loaded — scroll down and click 'Scan for BS'!")
 
 
 # ── Scan button ───────────────────────────────────────────────────────────────
@@ -204,7 +213,8 @@ with col_info:
 
 # ── Analysis & Results ────────────────────────────────────────────────────────
 if scan_clicked:
-    active_text = contract_text.strip()
+    # Use sample text if loaded via session_state, else use pasted/uploaded text
+    active_text = (st.session_state.sample_text if st.session_state.sample_loaded else contract_text).strip()
 
     if not api_key:
         st.warning("Please enter your Groq API key in the sidebar first. Get one free at console.groq.com")
