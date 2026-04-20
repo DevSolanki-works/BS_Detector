@@ -92,14 +92,18 @@ def generate_rental_agreement(idx):
     # Stamp circles (bottom right)
     for _ in range(random.randint(1,2)):
         cx = random.randint(150, IMG_SIZE-20)
-        cy = random.randint(max(y, IMG_SIZE-60), IMG_SIZE-15)
+        # FIX: Ensure the lower bound never exceeds the upper bound (IMG_SIZE-16)
+        cy_start = min(max(y, IMG_SIZE-60), IMG_SIZE-16)
+        cy = random.randint(cy_start, IMG_SIZE-15)
         r  = random.randint(16, 28)
         d.ellipse([cx-r, cy-r, cx+r, cy+r], outline=rand_color((30,60,180),15), width=2)
         d.ellipse([cx-r+4, cy-r+4, cx+r-4, cy+r-4], outline=rand_color((30,60,180),15), width=1)
 
     # Signature line
     sx = random.randint(8, 20)
-    sy = random.randint(max(y+4, IMG_SIZE-22), IMG_SIZE-10)
+    # FIX: Ensure the lower bound never exceeds the upper bound (IMG_SIZE-11)
+    sy_start = min(max(y+4, IMG_SIZE-22), IMG_SIZE-11)
+    sy = random.randint(sy_start, IMG_SIZE-10)
     d.rectangle([sx, sy, sx + random.randint(60,100), sy+1], fill=(80,80,80))
 
     return img
