@@ -1,180 +1,146 @@
-# 🛡️ ContractGuard — The Local Legal BS Detector
-### A College AI Project | Python + Streamlit + LangChain + Ollama
+# 🛡️ ContractGuard — The Legal BS Detector
+### Applied AI Mini Project | April 2026
 
-> **Privacy-first legal analysis. Every byte stays on your machine.**
+> Paste any contract, lease, or terms of service → get a plain-English breakdown, red flags, and Hindi & Gujarati translations in under 10 seconds.
+
+**Live URL:** https://bsdetector-tzxf2yrje4apphyzndjrlkb.streamlit.app
 
 ---
 
-## 📁 Project Architecture
+## 📁 Project Structure
 
 ```
-ContractGuard/
+BS_Detector/
 │
-├── app.py                          ← Main Streamlit UI (run this)
+├── app.py                        ← Main Streamlit app (run this)
+├── Dockerfile                    ← Docker container config
+├── generate_and_train.py         ← Generates synthetic data + trains Phase 2 model
+├── requirements.txt              ← Python dependencies
 │
 ├── src/
 │   ├── __init__.py
-│   ├── llm_handler.py              ← LangChain + Ollama pipeline
-│   ├── prompts.py                  ← All LLM system/user prompts
-│   └── doc_parser.py              ← PDF / DOCX text extraction
+│   ├── llm_handler.py            ← Groq API + LangChain pipeline
+│   ├── prompts.py                ← System prompts for the LLM
+│   ├── doc_parser.py             ← PDF / DOCX text extraction
+│   └── classifier.py            ← Teachable Machine document classifier
+│
+├── model/
+│   ├── keras_model.h5            ← Trained TensorFlow model (Phase 2)
+│   └── labels.txt                ← Class names for classifier
 │
 ├── sample_contracts/
-│   └── rental_clause_sample.txt   ← Test contract for demos
+│   └── rental_clause_sample.txt  ← Demo contract for testing
 │
-├── requirements.txt
-└── README.md
+└── synthetic_data/               ← Auto-generated training images
 ```
 
 ---
 
-## ⚙️ Local Setup (Step-by-Step)
+## 🚀 Three Ways to Run
 
-### Step 1 — Install Ollama
+### Option 1 — Normal Python (simplest)
 
-```bash
-# macOS / Linux
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Windows → Download from https://ollama.com/download
-```
-
-### Step 2 — Pull a local model (pick one)
-
-```bash
-ollama pull llama3:8b       # Recommended — best balance
-ollama pull mistral:7b      # Faster on lower-RAM machines
-ollama pull phi3:mini       # Lightest — works on 8GB RAM laptops
-```
-
-### Step 3 — Start the Ollama server
-
-```bash
-ollama serve
-# Keep this terminal open. Ollama listens on http://localhost:11434
-```
-
-### Step 4 — Clone / set up the Python project
-
-```bash
-# Create and activate a virtual environment
-python -m venv venv
-
-# Activate (Linux/macOS)
-source venv/bin/activate
-
-# Activate (Windows)
-venv\Scripts\activate
-
-# Install all dependencies
+```powershell
+# Install dependencies
 pip install -r requirements.txt
-```
 
-### Step 5 — Run the app
-
-```bash
+# Run the app
 streamlit run app.py
 ```
-
-Open your browser at **http://localhost:8501**
+Open http://localhost:8501
 
 ---
 
-## 🎓 Showing it to Your Professors
+### Option 2 — Docker (what we used)
 
-### Option A — Run on Your Laptop (Best for classroom demos)
-This is the default setup. Just run both `ollama serve` and `streamlit run app.py`
-and show the browser. Emphasise that the network tab shows ZERO external requests.
+Docker packages everything into a container so it runs identically on any machine — no "works on my machine" problems.
 
-### Option B — Share on Your Local Network (Lab demo)
-```bash
-# Find your IP
-hostname -I   # Linux/macOS
-ipconfig      # Windows
+```powershell
+# Step 1: Build the Docker image (only needed once, or when you change code)
+docker build -t contractguard .
 
-# Run Streamlit accessible on local network
-streamlit run app.py --server.address 0.0.0.0 --server.port 8501
+# Step 2: Run the container
+docker run -p 8501:8501 contractguard
 ```
-Professors on the same WiFi can open: `http://<your-ip>:8501`
+Open http://localhost:8501
 
-### Option C — Deploy to Streamlit Community Cloud (Online demo link)
-1. Push your code to a **public GitHub repo**
-2. Sign up at https://streamlit.io/cloud
-3. Connect your repo and set the main file to `app.py`
-4. ⚠️ Note: Cloud deployment uses the Anthropic API instead of Ollama —
-   update `llm_handler.py` to use `langchain_anthropic.ChatAnthropic`
+**Other useful Docker commands:**
+```powershell
+# Run with your Groq API key passed in
+docker run -p 8501:8501 -e GROQ_API_KEY=gsk_yourkey contractguard
 
----
+# Stop all running containers
+docker stop $(docker ps -q)
 
-## 🧩 Key Design Decisions (For Your Viva)
+# See all your built images
+docker images
 
-| Decision | Reason |
-|---|---|
-| **Ollama** over OpenAI | 100% local, no API cost, no data privacy concern |
-| **LangChain** | Standardised pipeline; swap models with 1 line of code |
-| **Streamlit** | Fastest way to build a Python ML web UI; no HTML/JS needed |
-| **JSON output enforced** | Structured LLM output = reliable parsing, better UX |
-| **Modular src/ layout** | Separation of concerns; each file has one job |
-| **Temperature = 0.1** | Low randomness = consistent JSON, fewer parse errors |
-| **pdfplumber** over PyPDF | Better text extraction from complex Indian contract PDFs |
-
----
-
-## 🔬 How the LLM Pipeline Works
-
+# Remove the image to rebuild fresh
+docker rmi contractguard
 ```
-User pastes text
-      │
-      ▼
-doc_parser.py  (extract if PDF/DOCX)
-      │
-      ▼
-prompts.py     (inject text into system + user prompt template)
-      │
-      ▼
-llm_handler.py (send to Ollama via LangChain → get raw JSON string)
-      │
-      ▼
-parse_llm_output() (strip fences → parse JSON → dict)
-      │
-      ▼
-app.py         (render 4-section dashboard in Streamlit)
+
+**What the Dockerfile does (line by line):**
+```dockerfile
+FROM python:3.12-slim          # Start from a clean Python 3.12 Linux environment
+WORKDIR /app                   # Set working directory inside container
+RUN pip install --upgrade pip  # Upgrade pip first
+COPY requirements.txt .        # Copy only requirements first (for Docker cache)
+RUN pip install -r requirements.txt  # Install all dependencies
+COPY . .                       # Copy all project files into container
+EXPOSE 8501                    # Tell Docker the app uses port 8501
+ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 ```
 
 ---
 
-## 📦 Library Reference
+### Option 3 — Streamlit Cloud (live public URL)
 
-| Library | Role |
-|---|---|
-| `streamlit` | Web UI framework |
-| `langchain` | LLM orchestration & prompt templating |
-| `langchain-ollama` | LangChain adapter for Ollama models |
-| `ollama` | Python client for local Ollama server |
-| `pdfplumber` | PDF text extraction |
-| `python-docx` | DOCX text extraction |
-| `pydantic` | Data validation (used internally by LangChain) |
-| `python-dotenv` | Load env vars from .env file (optional) |
+1. Push code to GitHub
+2. Go to share.streamlit.io → connect repo → deploy
+3. Settings → Secrets → add: `GROQ_API_KEY = "gsk_your_key"`
+4. Get a public URL to share with anyone
 
 ---
 
-## 🛠️ Troubleshooting
+## 🤖 Phase 2 — Train the Document Classifier
 
-**"Connection refused" error**
-→ Run `ollama serve` in a separate terminal first.
+```powershell
+# Install TensorFlow (one time)
+pip install tensorflow Pillow numpy
 
-**"Model not found" error**
-→ Run `ollama pull llama3:8b` (or whichever model you selected).
+# Generate 320 synthetic images + train the model (~5 mins)
+python generate_and_train.py
+```
 
-**JSON parse error from LLM**
-→ Lower the temperature slider to 0.0, or switch to a larger model.
-
-**Slow analysis (>2 minutes)**
-→ Use `phi3:mini` or `mistral:7b`. Llama 3 70B needs 32GB+ RAM.
-
-**ImportError on startup**
-→ Make sure your virtual environment is activated before running pip install.
+This creates `model/keras_model.h5` and `model/labels.txt` automatically. The model classifies uploaded document images into 4 categories: Rental Agreement, Employment Contract, Terms of Service, Other.
 
 ---
 
-*Built as a college project demonstrating local, private AI for legal document analysis.*
-*Not a substitute for professional legal advice.*
+## 🔑 API Key Setup
+
+Get a free Groq API key (no credit card) at **console.groq.com**
+
+**Local:** Enter in the sidebar text field when running the app.
+
+**Docker:** `docker run -p 8501:8501 -e GROQ_API_KEY=gsk_yourkey contractguard`
+
+**Streamlit Cloud:** Manage App → Settings → Secrets → paste `GROQ_API_KEY = "gsk_..."`
+
+---
+
+## 📦 Tech Stack
+
+| Layer | Tool | Purpose |
+|---|---|---|
+| UI | Streamlit | Web interface |
+| LLM | Groq API + Llama 3.1 8B | Contract analysis |
+| Orchestration | LangChain | Prompt + model pipeline |
+| Phase 2 Model | Teachable Machine / TensorFlow | Document image classifier |
+| Document Parsing | pdfplumber + python-docx | Read PDF and Word files |
+| Deployment | Streamlit Cloud + Docker | Hosting |
+
+---
+
+## ⚠️ Disclaimer
+
+ContractGuard is an educational AI tool. It is not a substitute for professional legal advice. Always consult a qualified lawyer before signing important contracts.
