@@ -8,7 +8,7 @@ langchain-core
 streamlit
 
 # Phase 2 — Teachable Machine classifier
-tensorflow-cpu
+tensorflow
 Pillow
 
 # Document parsing
