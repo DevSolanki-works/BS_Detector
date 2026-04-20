@@ -13,10 +13,22 @@ load_dotenv()
 
 
 def get_api_key():
-    if "GROQ_API_KEY" in st.secrets:
-        return st.secrets["GROQ_API_KEY"]
-    return os.getenv("GROQ_API_KEY")
+    # 1. Check standard environment variables first 
+    # (This is what Docker uses with the --env-file flag)
+    key = os.getenv("GROQ_API_KEY")
+    if key:
+        return key
 
+    # 2. Fallback to st.secrets (Streamlit Cloud uses this)
+    # We wrap this in a try-except to prevent the crash you're seeing
+    try:
+        if "GROQ_API_KEY" in st.secrets:
+            return st.secrets["GROQ_API_KEY"]
+    except Exception:
+        # If secrets file is missing, we just ignore it
+        pass
+
+    return None
 
 api_key = get_api_key()
 
