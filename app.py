@@ -1,12 +1,24 @@
 # app.py — ContractGuard: Professional UI Edition
 # streamlit run app.py
-
+import os
 import streamlit as st
 import time
 
 from src.llm_handler import analyse_contract, get_available_models, get_model_label
 from src.doc_parser import extract_text
 from src.classifier import classify_document, load_model, load_labels
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+def get_api_key():
+    if "GROQ_API_KEY" in st.secrets:
+        return st.secrets["GROQ_API_KEY"]
+    return os.getenv("GROQ_API_KEY")
+
+
+api_key = get_api_key()
 
 # ── Session state ─────────────────────────────────────────────────────────────
 for key, val in {"sample_loaded": False, "sample_text": "", "result": None, "elapsed": 0}.items():
@@ -258,15 +270,8 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # API key — secrets first, then manual input
-    _secret_key = ""
-    try:
-        _secret_key = st.secrets.get("GROQ_API_KEY", "")
-    except Exception:
-        pass
-
-    if _secret_key:
-        api_key = _secret_key
+    # API key — secrets/env first, then manual input
+    if api_key:
         st.markdown("""
         <div class="stat-pill">
             <div class="stat-pill-dot" style="background:#4ade80"></div>
