@@ -1,0 +1,7 @@
+.devcontainer/
+.venv/
+__pycache__/
+.git/
+.env
+.streamlit/secrets.toml
+synthetic_data/
