@@ -6,6 +6,7 @@ import time
 
 from src.llm_handler import analyse_contract, get_available_models, get_model_label
 from src.doc_parser import extract_text
+from src.classifier import classify_document, load_model, load_labels
 
 # ── Session state ─────────────────────────────────────────────────────────────
 for key, val in {"sample_loaded": False, "sample_text": "", "result": None, "elapsed": 0}.items():
@@ -326,10 +327,72 @@ with tab_paste:
 
 with tab_upload:
     st.markdown("<br>", unsafe_allow_html=True)
-    uploaded = st.file_uploader(
-        "Upload a contract", type=["pdf", "docx", "txt"],
-        label_visibility="collapsed",
-    )
+
+    col_up1, col_up2 = st.columns([3, 2])
+    with col_up1:
+        uploaded = st.file_uploader(
+            "Upload a contract (PDF, DOCX, TXT)",
+            type=["pdf", "docx", "txt"],
+            label_visibility="collapsed",
+        )
+    with col_up2:
+        uploaded_img = st.file_uploader(
+            "🤖 Scan document image (JPG/PNG) — AI classifier",
+            type=["jpg", "jpeg", "png"],
+            label_visibility="collapsed",
+            help="Phase 2: Upload a photo/scan of your contract to classify its type using our Teachable Machine model",
+        )
+
+    # ── Phase 2: Teachable Machine document type classifier ──────────────────
+    if uploaded_img is not None:
+        img_bytes = uploaded_img.read()
+        st.markdown('<div style="background:#0f1923;border:1px solid #1e3a5f;border-radius:14px;padding:1rem 1.2rem;margin-bottom:1rem">', unsafe_allow_html=True)
+        st.markdown("""
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-size:1.1rem">🤖</span>
+            <span style="font-size:0.85rem;font-weight:600;color:#60a5fa;letter-spacing:0.05em">PHASE 2 · TEACHABLE MACHINE CLASSIFIER</span>
+        </div>""", unsafe_allow_html=True)
+
+        with st.spinner("Classifying document type…"):
+            result_cls = classify_document(img_bytes)
+
+        if result_cls.get("model_available"):
+            pred = result_cls["predicted_class"]
+            conf = result_cls["confidence"]
+            conf_color = "#4ade80" if conf >= 70 else ("#fbbf24" if conf >= 40 else "#f87171")
+            st.markdown(f"""
+            <div style="display:flex;gap:1.5rem;align-items:center;flex-wrap:wrap">
+                <div>
+                    <div style="font-size:0.7rem;color:#4a5568;font-weight:600;letter-spacing:0.08em;margin-bottom:4px">DOCUMENT TYPE</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:#f0f6ff">{pred}</div>
+                </div>
+                <div>
+                    <div style="font-size:0.7rem;color:#4a5568;font-weight:600;letter-spacing:0.08em;margin-bottom:4px">CONFIDENCE</div>
+                    <div style="font-size:1.1rem;font-weight:700;color:{conf_color}">{conf}%</div>
+                </div>
+            </div>""", unsafe_allow_html=True)
+            if result_cls.get("all_predictions"):
+                st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
+                for p in result_cls["all_predictions"][:4]:
+                    bar_w = int(p["confidence"])
+                    st.markdown(f"""
+                    <div style="margin-bottom:4px">
+                        <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#6b7a93;margin-bottom:2px">
+                            <span>{p["label"]}</span><span>{p["confidence"]}%</span>
+                        </div>
+                        <div style="background:#1e2736;border-radius:99px;height:4px">
+                            <div style="background:#3b82f6;width:{bar_w}%;height:4px;border-radius:99px"></div>
+                        </div>
+                    </div>""", unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="font-size:0.82rem;color:#fbbf24">
+                ⚠️ Model not found. Place <code>keras_model.h5</code> and <code>labels.txt</code>
+                in a <code>model/</code> folder. Train at
+                <a href="https://teachablemachine.withgoogle.com" style="color:#60a5fa">teachablemachine.withgoogle.com</a>
+            </div>""", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
     if uploaded:
         with st.spinner("Extracting text…"):
             extracted = extract_text(uploaded)
