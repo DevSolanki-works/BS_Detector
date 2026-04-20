@@ -328,19 +328,20 @@ with tab_paste:
 with tab_upload:
     st.markdown("<br>", unsafe_allow_html=True)
 
-    col_up1, col_up2 = st.columns([3, 2])
-    with col_up1:
-        uploaded = st.file_uploader(
-            "Upload a contract (PDF, DOCX, TXT)",
-            type=["pdf", "docx", "txt"],
-            label_visibility="collapsed",
-        )
-    with col_up2:
+    st.markdown("#### Upload Contract File")
+    uploaded = st.file_uploader(
+        "Choose a contract file (PDF, DOCX, TXT)",
+        type=["pdf", "docx", "txt"],
+    )
+    st.caption("Use this uploader to extract contract text for analysis.")
+
+    uploaded_img = None
+    with st.expander("Optional: Upload Document Image for AI Type Classification"):
         uploaded_img = st.file_uploader(
-            "🤖 Scan document image (JPG/PNG) — AI classifier",
+            "Choose an image file (JPG, JPEG, PNG)",
             type=["jpg", "jpeg", "png"],
-            label_visibility="collapsed",
-            help="Phase 2: Upload a photo/scan of your contract to classify its type using our Teachable Machine model",
+            help="Upload a photo/scan of your contract to classify its type using the Teachable Machine model.",
+            key="image_classifier_uploader",
         )
 
     # ── Phase 2: Teachable Machine document type classifier ──────────────────
